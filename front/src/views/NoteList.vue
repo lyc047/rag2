@@ -33,9 +33,11 @@
       @confirm="addCategory">
       <div class="add-category-body">
         <input v-model="newCategoryZh" :placeholder="t('categoryZhPlaceholder')"
-          maxlength="4" class="add-category-input" />
+          maxlength="4" class="add-category-input"
+          @input="onZhInput" />
         <input v-model="newCategoryEn" :placeholder="t('categoryEnPlaceholder')"
-          maxlength="10" class="add-category-input" style="margin-top:10px" />
+          maxlength="10" class="add-category-input" style="margin-top:10px"
+          @input="onEnInput" />
       </div>
     </van-dialog>
 
@@ -111,6 +113,20 @@ const allCategories = computed(() => [
 watch(customCategories, (val) => {
   localStorage.setItem(CUSTOM_CATS_KEY, JSON.stringify(val))
 }, { deep: true })
+
+function onZhInput(e) {
+  if (/[a-zA-Z]/.test(newCategoryZh.value)) {
+    showToast('此处只允许输入中文')
+    newCategoryZh.value = newCategoryZh.value.replace(/[a-zA-Z]/g, '')
+  }
+}
+
+function onEnInput(e) {
+  if (/[一-鿿]/.test(newCategoryEn.value)) {
+    showToast('此处只允许输入英文')
+    newCategoryEn.value = newCategoryEn.value.replace(/[一-鿿]/g, '')
+  }
+}
 
 function addCategory() {
   const zh = newCategoryZh.value.trim()
@@ -198,7 +214,9 @@ function highlight(text) {
 .add-category-btn:active { opacity: 1; }
 .add-category-body { padding: 20px; }
 .add-category-input { width: 100%; border: 1px solid var(--color-border); border-radius: 8px;
-  padding: 8px 12px; font-size: 15px; outline: none; box-sizing: border-box; }
+  padding: 8px 12px; font-size: 15px; outline: none; box-sizing: border-box;
+  background: var(--color-bg); color: var(--color-text-lighter); }
+.add-category-input::placeholder { color: var(--color-text-lighter); opacity: 0.6; }
 .note-card { cursor: pointer; transition: transform 0.1s; }
 .note-card:active { transform: scale(0.98); }
 .note-title { font-size: 16px; font-weight: 600; margin-bottom: 6px; }

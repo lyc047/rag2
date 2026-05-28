@@ -167,5 +167,7 @@ function goBack() { router.back() }
 .tag-other { color: var(--color-primary); font-weight: 500; }
 .tag-dialog { padding: 20px; }
 .tag-input { width: 100%; border: 1px solid var(--color-border); border-radius: 8px;
-  padding: 8px 12px; font-size: 14px; outline: none; }
+  padding: 8px 12px; font-size: 14px; outline: none;
+  background: var(--color-bg); color: var(--color-text-lighter); }
+.tag-input::placeholder { color: var(--color-text-lighter); opacity: 0.6; }
 </style>

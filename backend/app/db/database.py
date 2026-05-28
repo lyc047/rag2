@@ -1,7 +1,9 @@
 """SQLite数据库配置 —— SQLAlchemy异步引擎"""
 import os
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
+from sqlalchemy.pool import NullPool
 from sqlalchemy.orm import DeclarativeBase
+from sqlalchemy import event
 from app.config.settings import DATABASE_URL
 
 # 确保数据库目录存在
@@ -13,7 +15,24 @@ if db_dir and not os.path.isabs(db_dir):
     abs_db_dir.parent.mkdir(parents=True, exist_ok=True)
 
 # 创建异步引擎（SQLite需要check_same_thread=False）
-engine = create_async_engine(DATABASE_URL, echo=False)
+engine = create_async_engine(
+    DATABASE_URL,
+    echo=False,
+    poolclass=NullPool,  # 禁用连接池，每个请求独立连接
+    connect_args={
+        "check_same_thread": False,
+        "timeout": 15,
+    },
+)
+
+# 启用WAL模式：允许多读一写并发，彻底解决SQLite锁问题
+@event.listens_for(engine.sync_engine, "connect")
+def set_sqlite_pragma(dbapi_connection, connection_record):
+    cursor = dbapi_connection.cursor()
+    cursor.execute("PRAGMA journal_mode=WAL;")
+    cursor.execute("PRAGMA synchronous=NORMAL;")
+    cursor.execute("PRAGMA busy_timeout=5000;")
+    cursor.close()
 
 # 异步会话工厂
 async_session_factory = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)

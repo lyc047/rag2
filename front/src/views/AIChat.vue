@@ -77,8 +77,9 @@
 </template>
 
 <script setup>
-import { ref, computed, nextTick, onMounted, watch } from 'vue'
-import { useRoute } from 'vue-router'
+defineOptions({ name: 'AIChat' })
+import { ref, computed, nextTick, onMounted, onActivated } from 'vue'
+import { useRoute, onBeforeRouteLeave } from 'vue-router'
 import { showToast, showConfirmDialog } from 'vant'
 import axios from 'axios'
 import API from '../config/api.js'
@@ -106,6 +107,29 @@ onMounted(async () => {
   await loadSessions()
   const sid = route.params.sessionId
   if (sid) { await switchSession(sid) }
+})
+
+// KeepAlive 缓存：按比例保存/恢复滚动位置
+const savedScrollRatio = ref(0)
+onBeforeRouteLeave(() => {
+  const el = msgListRef.value
+  if (!el) return
+  const maxScroll = el.scrollHeight - el.clientHeight
+  savedScrollRatio.value = maxScroll > 0 ? el.scrollTop / maxScroll : 0
+})
+onActivated(() => {
+  if (savedScrollRatio.value <= 0) return
+  const restore = () => {
+    const el = msgListRef.value
+    if (!el) return
+    const maxScroll = el.scrollHeight - el.clientHeight
+    if (maxScroll <= 0) return
+    el.scrollTop = Math.round(savedScrollRatio.value * maxScroll)
+  }
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    restore()
+    setTimeout(restore, 100)
+  }))
 })
 
 // 加载会话列表

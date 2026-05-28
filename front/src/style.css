@@ -184,6 +184,12 @@ body {
 /* ---- 对话框 ---- */
 .van-dialog {
   background: var(--color-card) !important;
+  --van-dialog-header-text-color: var(--color-text);
+  --van-dialog-message-text-color: var(--color-text);
+}
+.van-dialog__header,
+.van-dialog__title {
+  color: var(--color-primary) !important;
 }
 
 /* ---- 按钮 ---- */

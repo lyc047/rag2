@@ -16,7 +16,6 @@ router = APIRouter()
 @router.post("/query")
 async def chat_query(req: ChatRequest, db: AsyncSession = Depends(get_db)):
     """Agent流式对话 —— SSE返回token和工具调用"""
-    # 获取或创建会话，并加载历史消息
     session_id = req.session_id
     history = []
     if session_id:
@@ -25,15 +24,15 @@ async def chat_query(req: ChatRequest, db: AsyncSession = Depends(get_db)):
             session = await session_service.create_session(db)
             session_id = session.id
         else:
-            # 从已有会话中提取历史消息
             for msg in session.messages:
                 history.append({"role": msg.role, "content": msg.content})
     else:
         session = await session_service.create_session(db)
         session_id = session.id
 
-    # 保存用户消息
+    # 保存用户消息并立即提交，释放SQLite写锁供Agent工具使用
     await session_service.add_message(db, session_id, "user", req.query)
+    await db.commit()
 
     assistant_content = []
 
@@ -53,10 +52,11 @@ async def chat_query(req: ChatRequest, db: AsyncSession = Depends(get_db)):
             full_answer = "".join(assistant_content)
             if full_answer:
                 await session_service.add_message(db, session_id, "assistant", full_answer)
+                await db.commit()
 
             yield f"data: {json.dumps({'type': 'finish', 'session_id': session_id}, ensure_ascii=False)}\n\n"
         except Exception as e:
-            logger.error(f"Agent对话出错: {e}")
+            logger.error(f"Agent对话出错: {e}", exc_info=True)
             yield f"data: {json.dumps({'type': 'error', 'message': str(e)}, ensure_ascii=False)}\n\n"
 
     return StreamingResponse(event_stream(), media_type="text/event-stream")

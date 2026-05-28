@@ -1,6 +1,10 @@
 <template>
   <div id="app-container">
-    <router-view />
+    <router-view v-slot="{ Component, route }">
+      <keep-alive :include="['AIChat']">
+        <component :is="Component" :key="route.name" />
+      </keep-alive>
+    </router-view>
     <!-- 底部导航栏 -->
     <van-tabbar v-model="active" route placeholder="bottom" safe-area-inset-bottom>
       <van-tabbar-item to="/notes">
