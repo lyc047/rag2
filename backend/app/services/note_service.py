@@ -97,9 +97,9 @@ class NoteService:
         items = [self._to_list_item(note) for note in notes]
         return items, total
 
-    async def search(self, db: AsyncSession, query: str) -> List[NoteListItem]:
+    async def search(self, db: AsyncSession, query: str,
+                     category: str = None) -> List[NoteListItem]:
         """关键字搜索笔记 —— 标题 > 标签 > 正文 优先级排序，取 top 3"""
-        # 原生 SQL：CASE 排优先级，标题命中=1 标签命中=2 正文命中=3
         sql = text("""
             SELECT *, CASE
                 WHEN title LIKE :q THEN 1
@@ -108,12 +108,16 @@ class NoteService:
                 ELSE 4
             END AS priority
             FROM notes
-            WHERE title LIKE :q OR tags LIKE :q OR content LIKE :q
+            WHERE (title LIKE :q OR tags LIKE :q OR content LIKE :q)
+        """ + (" AND tags LIKE :cat" if category else "") + """
             ORDER BY priority, updated_at DESC
             LIMIT 3
         """)
         like = f"%{query}%"
-        result = await db.execute(sql, {"q": like})
+        params = {"q": like}
+        if category:
+            params["cat"] = f"%{category}%"
+        result = await db.execute(sql, params)
         rows = result.fetchall()
         return [NoteListItem(
             id=row.id,

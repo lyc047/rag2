@@ -220,7 +220,7 @@ function highlight(text) {
 .note-card { cursor: pointer; transition: transform 0.1s; }
 .note-card:active { transform: scale(0.98); }
 .note-title { font-size: 16px; font-weight: 600; margin-bottom: 6px; }
-.note-title :deep(mark), .note-preview :deep(mark) { background: #D6E4FF; color: inherit; padding: 1px 2px; border-radius: 2px; }
+.note-title :deep(mark), .note-preview :deep(mark) { background: var(--color-primary); color: #fff; padding: 1px 3px; border-radius: 2px; }
 .note-preview { font-size: 13px; color: var(--color-text-light); margin-bottom: 10px;
   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .note-meta { display: flex; justify-content: space-between; align-items: center; }

@@ -92,6 +92,15 @@ body {
   --van-tag-primary-color: var(--color-primary);
   --van-nav-bar-height: 46px;
   --van-search-field-background: var(--color-surface);
+  --van-search-input-text-color: var(--color-text);
+}
+
+/* ---- 搜索框暗色修复 ---- */
+.van-search__content .van-field__control {
+  color: var(--color-text) !important;
+}
+.van-search__content .van-field__control::placeholder {
+  color: var(--color-text-lighter) !important;
 }
 
 /* ---- 导航栏 ---- */

@@ -10,9 +10,10 @@ router = APIRouter()
 
 
 @router.get("/search/{query}")
-async def search_notes(query: str, db: AsyncSession = Depends(get_db)):
+async def search_notes(query: str, category: str = Query(default=None),
+                       db: AsyncSession = Depends(get_db)):
     """关键字搜索笔记 —— 标题 > 标签 > 正文"""
-    items = await note_service.search(db, query)
+    items = await note_service.search(db, query, category)
     return success_response(data=[i.model_dump() for i in items])
 
 
