@@ -1,6 +1,6 @@
 <template>
   <div class="knowledge-page">
-    <van-nav-bar title="知识库" left-text="返回" left-arrow @click-left="$router.back()" fixed placeholder />
+    <van-nav-bar :title="t('knowledgeBase')" :left-text="t('back')" left-arrow @click-left="$router.back()" fixed placeholder />
 
     <!-- 上传区域 -->
     <div class="upload-area card">
@@ -15,8 +15,8 @@
         <div v-for="item in uploadList" :key="item.filename" class="upload-item">
           <div class="upload-filename">{{ item.filename }}</div>
           <van-progress :percentage="item.percentage"
-            :color="item.status === 'failed' ? 'var(--danger)' : 'var(--accent)'" />
-          <div class="upload-msg" :style="{ color: item.status === 'failed' ? 'var(--danger)' : '' }">
+            :color="item.status === 'failed' ? 'var(--color-danger)' : 'var(--color-primary)'" />
+          <div class="upload-msg" :style="{ color: item.status === 'failed' ? 'var(--color-danger)' : '' }">
             {{ item.message }}</div>
         </div>
       </div>
@@ -25,7 +25,7 @@
     <!-- 文档列表 -->
     <div class="doc-list-title">已入库文档 ({{ documents.length }})</div>
     <div v-if="documents.length === 0" class="empty-state">
-      <van-empty description="暂无文档" />
+      <van-empty :description="t('knowledgeEmpty')" />
     </div>
     <div v-for="doc in documents" :key="doc.md5" class="doc-card card"
       @click="viewChunks(doc)">
@@ -58,6 +58,9 @@ import { ref, onMounted } from 'vue'
 import { showToast, showConfirmDialog } from 'vant'
 import axios from 'axios'
 import API from '../config/api.js'
+import { useI18n } from '../composables/useI18n.js'
+
+const { t } = useI18n()
 
 const documents = ref([])
 const uploadList = ref([])
@@ -162,19 +165,19 @@ async function loadDocuments() {
 
 <style scoped>
 .upload-area { text-align: center; }
-.upload-title { font-size: 14px; margin-bottom: 12px; color: var(--text-secondary); }
+.upload-title { font-size: 14px; margin-bottom: 12px; color: var(--color-text-light); }
 .upload-progress-list { margin-top: 16px; }
 .upload-item { margin-bottom: 12px; text-align: left; }
 .upload-filename { font-size: 13px; font-weight: 500; margin-bottom: 4px; }
-.upload-msg { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
+.upload-msg { font-size: 11px; color: var(--color-text-light); margin-top: 2px; }
 
 .doc-list-title { font-size: 15px; font-weight: 600; padding: 16px 16px 8px; }
 .doc-card { display: flex; align-items: center; gap: 10px; }
 .doc-name { flex: 1; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.doc-meta { font-size: 11px; color: var(--text-secondary); }
+.doc-meta { font-size: 11px; color: var(--color-text-light); }
 
 .chunk-panel { height: 100%; overflow-y: auto; padding-bottom: 20px; }
-.chunk-item { padding: 12px 16px; border-bottom: 1px solid var(--border); }
-.chunk-index { font-size: 12px; color: var(--accent); margin-bottom: 4px; }
-.chunk-text { font-size: 13px; line-height: 1.6; color: var(--text-primary); }
+.chunk-item { padding: 12px 16px; border-bottom: 1px solid var(--color-border); }
+.chunk-index { font-size: 12px; color: var(--color-primary); margin-bottom: 4px; }
+.chunk-text { font-size: 13px; line-height: 1.6; color: var(--color-text); }
 </style>

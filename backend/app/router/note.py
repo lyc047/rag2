@@ -1,4 +1,4 @@
-"""笔记路由 —— CRUD + 语义搜索"""
+"""笔记路由 —— CRUD + 关键字搜索"""
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.response import success_response
@@ -7,6 +7,13 @@ from app.schemas.models import NoteCreate, NoteUpdate, PageRequest
 from app.services.note_service import note_service
 
 router = APIRouter()
+
+
+@router.get("/search/{query}")
+async def search_notes(query: str, db: AsyncSession = Depends(get_db)):
+    """关键字搜索笔记 —— 标题 > 标签 > 正文"""
+    items = await note_service.search(db, query)
+    return success_response(data=[i.model_dump() for i in items])
 
 
 @router.post("")
@@ -56,10 +63,3 @@ async def list_notes(
         "page": page,
         "page_size": page_size,
     })
-
-
-@router.get("/search/{query}")
-async def search_notes(query: str, db: AsyncSession = Depends(get_db)):
-    """语义搜索笔记"""
-    items = await note_service.search(db, query)
-    return success_response(data=[i.model_dump() for i in items])

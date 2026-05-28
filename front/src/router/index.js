@@ -30,6 +30,12 @@ const routes = [
     component: () => import('../views/KnowledgeBase.vue'),
     meta: { title: '知识库' }
   },
+  {
+    path: '/profile',
+    name: 'Profile',
+    component: () => import('../views/Profile.vue'),
+    meta: { title: '我的' }
+  },
 ]
 
 export default routes

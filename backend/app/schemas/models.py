@@ -70,6 +70,7 @@ class ChatRequest(BaseModel):
     """聊天请求"""
     query: str = Field(..., min_length=1, max_length=5000)
     session_id: Optional[str] = None
+    lang: Optional[str] = None
 
 
 # ==================== 知识库 ====================

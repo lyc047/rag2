@@ -87,9 +87,11 @@ class AgentService:
             ),
         )
 
-    def _build_messages(self, query: str, chat_history: list = None) -> list:
+    def _build_messages(self, query: str, chat_history: list = None, lang: str = None) -> list:
         """构建消息列表 —— 将历史记录转为LangChain消息格式"""
         messages = []
+        if lang == 'en':
+            messages.append(SystemMessage(content="You MUST respond in English only. Never use Chinese. Always reply in natural English."))
         if chat_history:
             for msg in chat_history:
                 role = msg.get("role", "")
@@ -101,9 +103,9 @@ class AgentService:
         messages.append(HumanMessage(content=query))
         return messages
 
-    async def chat(self, query: str, chat_history: list = None) -> dict:
+    async def chat(self, query: str, chat_history: list = None, lang: str = None) -> dict:
         """执行Agent对话"""
-        messages = self._build_messages(query, chat_history)
+        messages = self._build_messages(query, chat_history, lang)
         result = await self.agent.ainvoke({"messages": messages})
         # 提取最后一条AI消息作为回答
         output = ""
@@ -113,9 +115,9 @@ class AgentService:
                 break
         return {"answer": output}
 
-    async def chat_stream(self, query: str, chat_history: list = None):
+    async def chat_stream(self, query: str, chat_history: list = None, lang: str = None):
         """流式Agent对话 —— 逐token返回"""
-        messages = self._build_messages(query, chat_history)
+        messages = self._build_messages(query, chat_history, lang)
         async for event in self.agent.astream_events(
             {"messages": messages},
             version="v2",

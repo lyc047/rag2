@@ -1,7 +1,7 @@
 """笔记服务 —— CRUD + 语义搜索，SQLite存储 + ChromaDB向量同步"""
 import json
 from typing import Optional, List
-from sqlalchemy import select, func
+from sqlalchemy import select, func, text
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.note import Note
 from app.rag.vector_store import vector_store_service
@@ -97,18 +97,32 @@ class NoteService:
         items = [self._to_list_item(note) for note in notes]
         return items, total
 
-    async def search(self, db: AsyncSession, query: str, top_k: int = 10) -> List[NoteListItem]:
-        """语义搜索笔记 —— 先用向量检索定位note_id，再从数据库加载详情"""
-        search_results = await vector_store_service.search_notes(query, top_k)
-        if not search_results:
-            return []
-
-        items = []
-        for sr in search_results:
-            note = await db.get(Note, sr["note_id"])
-            if note:
-                items.append(self._to_list_item(note))
-        return items
+    async def search(self, db: AsyncSession, query: str) -> List[NoteListItem]:
+        """关键字搜索笔记 —— 标题 > 标签 > 正文 优先级排序，取 top 3"""
+        # 原生 SQL：CASE 排优先级，标题命中=1 标签命中=2 正文命中=3
+        sql = text("""
+            SELECT *, CASE
+                WHEN title LIKE :q THEN 1
+                WHEN tags LIKE :q THEN 2
+                WHEN content LIKE :q THEN 3
+                ELSE 4
+            END AS priority
+            FROM notes
+            WHERE title LIKE :q OR tags LIKE :q OR content LIKE :q
+            ORDER BY priority, updated_at DESC
+            LIMIT 3
+        """)
+        like = f"%{query}%"
+        result = await db.execute(sql, {"q": like})
+        rows = result.fetchall()
+        return [NoteListItem(
+            id=row.id,
+            title=row.title,
+            content_preview=row.content[:100] if row.content else "",
+            tags=json.loads(row.tags) if row.tags else [],
+            created_at=row.created_at,
+            updated_at=row.updated_at,
+        ) for row in rows]
 
     def _to_response(self, note: Note) -> NoteResponse:
         """ORM模型 -> 响应模型"""

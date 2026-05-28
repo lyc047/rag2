@@ -40,7 +40,7 @@ async def chat_query(req: ChatRequest, db: AsyncSession = Depends(get_db)):
     async def event_stream():
         nonlocal assistant_content
         try:
-            async for event in agent_service.chat_stream(req.query, history):
+            async for event in agent_service.chat_stream(req.query, history, req.lang):
                 if event["type"] == "token":
                     assistant_content.append(event["content"])
                     yield f"data: {json.dumps({'type': 'token', 'content': event['content']}, ensure_ascii=False)}\n\n"

@@ -1,79 +1,224 @@
-/* 全局样式 —— 暖色调书卷风移动端设计 */
+/* ============================================
+   设计系统 — 温润书卷 · 暖色调
+   ============================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&family=Noto+Serif+SC:wght@400;600;700&display=swap');
+
 :root {
-  --bg-primary: #faf7f2;
-  --bg-secondary: #f5f0e8;
-  --bg-card: #fffef9;
-  --text-primary: #3d3226;
-  --text-secondary: #8b7e6a;
-  --accent: #c8854a;
-  --accent-light: #f0d9bc;
-  --border: #e8e0d5;
-  --success: #6b9e7a;
-  --danger: #c4675c;
-  --shadow: 0 2px 12px rgba(61, 50, 38, 0.06);
-  --radius: 12px;
+  /* 默认亮色（回退值，JS 会覆盖） */
+  --color-primary:       #D4914A;
+  --color-primary-light: #F0D9BC;
+  --color-bg:            #FAF7F2;
+  --color-surface:       #F5F0E8;
+  --color-card:          #FFFFFF;
+  --color-text:          #3D3226;
+  --color-text-light:    #6B5F4F;
+  --color-text-lighter:  #8B7E6F;
+  --color-text-lightest: #ADA296;
+  --color-border:        #E5DDD0;
+  --color-border-light:  #F0EBE1;
+  --color-divider:       #EDE6DA;
+  --color-shadow:        rgba(139, 126, 111, 0.12);
+  --color-success:       #6B9E7A;
+  --color-danger:        #C4675C;
+  --radius:              12px;
+  --safe-area-inset-bottom: env(safe-area-inset-bottom);
+
+  font-family: 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  line-height: 1.6;
+  font-weight: 400;
+  color-scheme: light dark;
+  color: var(--color-text);
+  background-color: var(--color-bg);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  -webkit-text-size-adjust: 100%;
 }
 
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html { -webkit-tap-highlight-color: transparent; }
 
 body {
-  font-family: 'Noto Serif SC', 'Source Han Serif SC', 'STSong', Georgia, serif;
-  background: var(--bg-primary);
-  color: var(--text-primary);
-  -webkit-font-smoothing: antialiased;
+  font-size: 14px;
+  color: var(--color-text);
+  background-color: var(--color-bg);
+  font-family: 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', sans-serif;
   max-width: 750px;
   margin: 0 auto;
   min-height: 100vh;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 #app-container {
-  padding-bottom: 50px; /* 底部导航栏高度 */
+  padding-bottom: 50px;
   min-height: 100vh;
 }
 
-/* 导航栏 */
-.van-nav-bar {
-  background: var(--bg-card) !important;
-  border-bottom: 1px solid var(--border);
+/* ---- Vant 组件主题覆写 ---- */
+:root {
+  --van-primary-color: var(--color-primary);
+  --van-background-color: var(--color-bg);
+  --van-background-color-light: var(--color-surface);
+  --van-cell-background: var(--color-card);
+  --van-cell-title-text-color: var(--color-text);
+  --van-cell-text-color: var(--color-text-light);
+  --van-cell-value-color: var(--color-text-light);
+  --van-cell-right-icon-color: var(--color-text-lighter);
+  --van-nav-bar-background: var(--color-card);
+  --van-nav-bar-title-text-color: var(--color-text);
+  --van-nav-bar-icon-color: var(--color-text-light);
+  --van-tabbar-background: var(--color-card);
+  --van-tabbar-item-active-color: var(--color-primary);
+  --van-tabbar-item-text-color: var(--color-text-lighter);
+  --van-text-color: var(--color-text);
+  --van-text-color-2: var(--color-text-light);
+  --van-text-color-3: var(--color-text-lighter);
+  --van-button-primary-background: var(--color-primary);
+  --van-button-primary-border-color: var(--color-primary);
+  --van-button-default-color: var(--color-text);
+  --van-button-default-background: var(--color-card);
+  --van-button-default-border-color: var(--color-border);
+  --van-field-label-color: var(--color-text-light);
+  --van-field-input-text-color: var(--color-text);
+  --van-field-placeholder-text-color: var(--color-text-lighter);
+  --van-cell-group-background: transparent;
+  --van-cell-group-title-color: var(--color-text-lighter);
+  --van-popup-background: var(--color-card);
+  --van-dialog-background: var(--color-card);
+  --van-toast-background: rgba(61, 50, 38, 0.85);
+  --van-loading-spinner-color: var(--color-primary);
+  --van-tag-primary-color: var(--color-primary);
+  --van-nav-bar-height: 46px;
+  --van-search-field-background: var(--color-surface);
 }
 
-/* 卡片 */
+/* ---- 导航栏 ---- */
+.van-nav-bar {
+  background: var(--color-card) !important;
+  border-bottom: 1px solid var(--color-border);
+}
+.van-nav-bar__title {
+  color: var(--color-text-lighter) !important;
+}
+
+/* ---- 卡片 ---- */
 .card {
-  background: var(--bg-card);
+  background: var(--color-card);
   border-radius: var(--radius);
   padding: 16px;
   margin: 12px 16px;
-  box-shadow: var(--shadow);
+  box-shadow: 0 1px 3px var(--color-shadow);
 }
 
-/* 按钮 */
-.van-button--primary {
-  background: var(--accent) !important;
-  border-color: var(--accent) !important;
-}
-
-/* 标签 */
+/* ---- 标签 ---- */
 .van-tag--primary {
-  background: var(--accent-light) !important;
-  color: var(--accent) !important;
+  background: var(--color-primary-light) !important;
+  color: var(--color-primary) !important;
 }
 
-/* 空状态 */
+/* ---- 空状态 ---- */
 .empty-state {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   padding: 60px 20px;
-  color: var(--text-secondary);
+  color: var(--color-text-light);
 }
 
-/* Markdown编辑器 */
-.bytemd {
-  height: calc(100vh - 100px) !important;
-  border: none !important;
+/* ---- 底部导航栏 ---- */
+.van-tabbar {
+  background: var(--color-card) !important;
+  padding-bottom: var(--safe-area-inset-bottom);
+}
+.van-tabbar-item {
+  background: var(--color-card) !important;
+  color: var(--color-text-lighter) !important;
+}
+.van-tabbar-item--active {
+  background: var(--color-card) !important;
+  color: var(--color-primary) !important;
+}
+
+/* ---- 搜索栏 ---- */
+.van-search {
+  background: var(--color-bg) !important;
+}
+.van-search__content {
+  background: var(--color-surface) !important;
+}
+.van-search__field {
+  background: var(--color-surface) !important;
+}
+.van-search__action {
+  color: var(--color-primary) !important;
+}
+
+/* ---- 单元格 ---- */
+.van-cell {
+  background: var(--color-card) !important;
+}
+.van-cell__title {
+  color: var(--color-text-lighter) !important;
+}
+.van-cell__value {
+  color: var(--color-text-lighter) !important;
+}
+.van-cell__label {
+  color: var(--color-text-lighter) !important;
+}
+.van-cell-group {
+  background: transparent !important;
+}
+.van-cell-group__title {
+  color: var(--color-text-lighter) !important;
+}
+
+/* ---- 弹出层 ---- */
+.van-popup {
+  background: var(--color-card) !important;
+}
+
+/* ---- 对话框 ---- */
+.van-dialog {
+  background: var(--color-card) !important;
+}
+
+/* ---- 按钮 ---- */
+.van-button--default {
+  background: var(--color-card) !important;
+  color: var(--color-text) !important;
+  border-color: var(--color-border) !important;
+}
+
+/* ---- 下拉刷新 ---- */
+.van-pull-refresh {
+  background: var(--color-bg) !important;
+}
+
+/* ---- 滚动条 ---- */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 2px; }
+
+/* ---- 文本溢出 ---- */
+.ellipsis {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---- 纸纹纹理 ---- */
+body::before {
+  content: '';
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  pointer-events: none;
+  z-index: 9999;
+  opacity: 0.025;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 256px 256px;
 }
