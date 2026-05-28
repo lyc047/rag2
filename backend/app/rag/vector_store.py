@@ -5,7 +5,7 @@ import shutil
 from typing import Optional
 from langchain_chroma import Chroma
 from langchain_core.documents import Document
-from app.config.settings import CHROMA_PERSIST_PATH, CHROMA_COLLECTION, DATA_PATH
+from app.config.settings import CHROMA_PERSIST_PATH, CHROMA_COLLECTION, CHROMA_DISTANCE_METRIC, DATA_PATH
 from app.utils.factory import get_embed_model
 from app.utils.md5_store import MD5Store
 from app.rag.loader import get_file_md5_sync, load_file_sync
@@ -32,8 +32,9 @@ class VectorStoreService:
                 collection_name=CHROMA_COLLECTION,
                 embedding_function=embed,
                 persist_directory=CHROMA_PERSIST_PATH,
+                collection_metadata={"hnsw:space": CHROMA_DISTANCE_METRIC},
             )
-            logger.info(f"知识库向量库已初始化: {CHROMA_COLLECTION}")
+            logger.info(f"知识库向量库已初始化: {CHROMA_COLLECTION} ({CHROMA_DISTANCE_METRIC})")
         return self._store
 
     @property
@@ -46,8 +47,9 @@ class VectorStoreService:
                 collection_name=f"{CHROMA_COLLECTION}_notes",
                 embedding_function=embed,
                 persist_directory=CHROMA_PERSIST_PATH,
+                collection_metadata={"hnsw:space": CHROMA_DISTANCE_METRIC},
             )
-            logger.info(f"笔记向量库已初始化: {CHROMA_COLLECTION}_notes")
+            logger.info(f"笔记向量库已初始化: {CHROMA_COLLECTION}_notes ({CHROMA_DISTANCE_METRIC})")
         return self._notes_store
 
     # ==================== 知识库文档操作 ====================

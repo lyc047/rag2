@@ -24,7 +24,10 @@ def get_chat_model():
             model="deepseek-chat",
             api_key=os.getenv("DEEPSEEK_API_KEY", ""),
             base_url="https://api.deepseek.com/v1",
-            temperature=0.7,
+            temperature=0.6,
+            frequency_penalty=0.2,
+            presence_penalty=0.2,
+            top_p=0.9,
             streaming=True,
         )
         logger.info(f"LLM: DeepSeek (deepseek-chat)")
