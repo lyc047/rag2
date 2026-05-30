@@ -60,15 +60,39 @@
     </div>
 
     <!-- 会话列表弹窗 -->
-    <van-popup v-model:show="showSessions" position="right" :style="{ width: '80%', height: '100%' }">
+    <van-popup v-model:show="showSessions" position="right" :style="{ width: '80%', height: '100%' }"
+      @closed="sessionEditMode = false; selectedSessions = []">
       <div class="session-panel">
-        <van-nav-bar :title="t('chatHistory')" :left-text="t('close')" @click-left="showSessions = false" />
+        <van-nav-bar :title="t('chatHistory')" :left-text="t('close')"
+          @click-left="showSessions = false; sessionEditMode = false; selectedSessions = []">
+          <template #right>
+            <span v-if="sessions.length > 0" class="nav-action" @click="toggleSessionEdit">
+              {{ sessionEditMode ? t('done') : t('edit') }}
+            </span>
+          </template>
+        </van-nav-bar>
         <van-button block round type="primary" @click="newSession" style="margin:12px 16px">{{ t('newSession') }}</van-button>
+
+        <!-- 编辑模式操作栏 -->
+        <div v-if="sessionEditMode && sessions.length > 0" class="edit-actions">
+          <van-button size="small" @click="selectAllSessions">{{ t('selectAll') }}</van-button>
+          <van-button size="small" @click="selectedSessions = []">{{ t('deselectAll') }}</van-button>
+          <van-button size="small" type="danger" :disabled="selectedSessions.length === 0"
+            @click="deleteSelectedSessions">{{ t('deleteSelected') }} ({{ selectedSessions.length }})</van-button>
+        </div>
+        <van-button v-if="!sessionEditMode && sessions.length > 0" block round type="danger"
+          @click="deleteAllSessions" style="margin:0 16px 12px">{{ t('deleteAllSessions') }}</van-button>
+
         <div v-for="s in sessions" :key="s.id" class="session-item"
-          @click="switchSession(s.id)">
-          <div class="session-title">{{ s.title }}</div>
-          <div class="session-time">{{ formatDate(s.updated_at) }}</div>
-          <van-icon name="delete-o" @click.stop="deleteSession(s.id)" />
+          :class="{ 'edit-mode': sessionEditMode, 'selected': selectedSessions.includes(s.id) }"
+          @click="sessionEditMode ? toggleSessionSelect(s.id) : switchSession(s.id)">
+          <van-checkbox v-if="sessionEditMode" :model-value="selectedSessions.includes(s.id)"
+            @click.stop="toggleSessionSelect(s.id)" />
+          <div class="session-info">
+            <div class="session-title">{{ s.title }}</div>
+            <div class="session-time">{{ formatDate(s.updated_at) }}</div>
+          </div>
+          <van-icon v-if="!sessionEditMode" name="delete-o" @click.stop="deleteSession(s.id)" />
         </div>
         <van-empty v-if="sessions.length === 0" :description="t('noSessions')" />
       </div>
@@ -95,6 +119,8 @@ const streaming = ref(false)
 const streamingContent = ref('')
 const currentSessionId = ref(null)
 const showSessions = ref(false)
+const sessionEditMode = ref(false)
+const selectedSessions = ref([])
 const msgListRef = ref(null)
 const thinkingBlocks = ref([])
 
@@ -231,8 +257,49 @@ async function deleteSession(sid) {
   try {
     await showConfirmDialog({ title: t('deleteConfirm'), message: t('confirmDeleteSession') })
     await axios.delete(API.chatDeleteSession(sid))
+    if (currentSessionId.value === sid) { currentSessionId.value = null; messages.value = [] }
     await loadSessions()
   } catch (e) { /* 取消或失败 */ }
+}
+async function deleteAllSessions() {
+  try {
+    await showConfirmDialog({ title: t('deleteAllSessions'), message: t('confirmDeleteAllSessions') })
+    await axios.delete(API.chatDeleteAllSessions)
+    currentSessionId.value = null
+    messages.value = []
+    await loadSessions()
+    showToast(t('deletedAllSessions'))
+  } catch (e) { /* 取消或失败 */ }
+}
+function toggleSessionEdit() {
+  sessionEditMode.value = !sessionEditMode.value
+  selectedSessions.value = []
+}
+function toggleSessionSelect(id) {
+  const idx = selectedSessions.value.indexOf(id)
+  if (idx > -1) selectedSessions.value.splice(idx, 1)
+  else selectedSessions.value.push(id)
+}
+function selectAllSessions() {
+  selectedSessions.value = sessions.value.map(s => s.id)
+}
+async function deleteSelectedSessions() {
+  if (selectedSessions.value.length === 0) return
+  try {
+    await showConfirmDialog({ title: t('deleteSelected'), message: t('confirmDeleteSelected') })
+  } catch (e) { return /* 用户取消 */ }
+  try {
+    await axios.post(API.chatBatchDeleteSessions, { ids: selectedSessions.value })
+    if (selectedSessions.value.includes(currentSessionId.value)) {
+      currentSessionId.value = null; messages.value = []
+    }
+    selectedSessions.value = []
+    sessionEditMode.value = false
+    await loadSessions()
+    showToast(t('deletedAllSessions'))
+  } catch (e) {
+    showToast(t('requestFail'))
+  }
 }
 function scrollBottom() {
   nextTick(() => {
@@ -286,8 +353,15 @@ function renderContent(text) {
 
 .session-panel { height: 100%; overflow-y: auto; }
 .session-item { display: flex; align-items: center; padding: 14px 16px;
-  border-bottom: 1px solid var(--color-border); cursor: pointer; gap: 8px; }
+  border-bottom: 1px solid var(--color-border); cursor: pointer; gap: 8px;
+  transition: background 0.15s; }
 .session-item:active { background: var(--color-surface); }
-.session-title { flex: 1; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.session-time { font-size: 11px; color: var(--color-text-light); flex-shrink: 0; }
+.session-item.edit-mode { cursor: default; }
+.session-item.edit-mode:active { background: transparent; }
+.session-item.selected { background: rgba(212, 145, 74, 0.15);
+  box-shadow: inset 3px 0 0 0 var(--color-primary); }
+.session-info { flex: 1; min-width: 0; }
+.session-title { font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.session-time { font-size: 11px; color: var(--color-text-light); }
+.edit-actions { display: flex; gap: 8px; padding: 0 16px 12px; flex-wrap: wrap; }
 </style>

@@ -2,13 +2,14 @@
 import os
 import asyncio
 import shutil
+from datetime import datetime
 from typing import Optional
 from langchain_chroma import Chroma
 from langchain_core.documents import Document
-from app.config.settings import CHROMA_PERSIST_PATH, CHROMA_COLLECTION, CHROMA_DISTANCE_METRIC, DATA_PATH
+from app.config.settings import CHROMA_PERSIST_PATH, CHROMA_COLLECTION, CHROMA_DISTANCE_METRIC, DATA_PATH, CONTENT_TIME_EXTRACTION, CHUNK_STRATEGY
 from app.utils.factory import get_embed_model
 from app.utils.md5_store import MD5Store
-from app.rag.loader import get_file_md5_sync, load_file_sync
+from app.rag.loader import get_file_md5_sync, load_file_sync, get_file_mtime_sync, extract_content_time_range
 from app.rag.text_splitter import DocumentSplitter
 from app.core.logger import logger
 
@@ -20,7 +21,7 @@ class VectorStoreService:
         self._store: Optional[Chroma] = None
         self._notes_store: Optional[Chroma] = None
         self.md5_store = MD5Store()
-        self.splitter = DocumentSplitter()
+        self.splitter = DocumentSplitter(strategy=CHUNK_STRATEGY)
 
     @property
     def knowledge_store(self) -> Chroma:
@@ -72,10 +73,25 @@ class VectorStoreService:
         if not chunks:
             return {"success": False, "filename": filename, "error": "文档切分为空"}
 
+        # 提取时间元数据
+        file_mtime = get_file_mtime_sync(file_path)
+        uploaded_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+        # 从文档内容中提取年份范围（需要原始全文）
+        content_time_range = ""
+        if CONTENT_TIME_EXTRACTION:
+            full_text = " ".join(d.page_content for d in docs)
+            content_time_range = extract_content_time_range(full_text)
+
         # 写入元数据
         for doc in chunks:
             doc.metadata["filename"] = filename
             doc.metadata["md5"] = md5_hex
+            doc.metadata["uploaded_at"] = uploaded_at
+            if file_mtime:
+                doc.metadata["file_mtime"] = file_mtime
+            if content_time_range:
+                doc.metadata["content_time_range"] = content_time_range
 
         # 存入向量库
         await asyncio.to_thread(self.knowledge_store.add_documents, chunks)

@@ -2,6 +2,9 @@
   <div class="note-list-page">
     <van-nav-bar :title="t('notes')" fixed placeholder>
       <template #right>
+        <span v-if="notes.length > 0" class="nav-action" @click="toggleEditMode" style="margin-right:16px">
+          {{ editMode ? t('done') : t('edit') }}
+        </span>
         <van-icon name="plus" size="22" @click="goCreate" />
       </template>
     </van-nav-bar>
@@ -41,19 +44,32 @@
       </div>
     </van-dialog>
 
+    <!-- 编辑模式操作栏 -->
+    <div v-if="editMode && notes.length > 0" class="edit-bar">
+      <van-button size="small" @click="selectAllNotes">{{ t('selectAll') }}</van-button>
+      <van-button size="small" @click="selectedNotes = []">{{ t('deselectAll') }}</van-button>
+      <van-button size="small" type="danger" :disabled="selectedNotes.length === 0"
+        @click="deleteSelectedNotes">{{ t('deleteSelected') }} ({{ selectedNotes.length }})</van-button>
+    </div>
+
     <!-- 笔记列表 -->
-    <van-pull-refresh v-model="refreshing" @refresh="onRefresh">
+    <van-pull-refresh v-model="refreshing" @refresh="onRefresh" :style="{ paddingTop: editMode ? '0' : '0' }">
       <van-list v-model:loading="loading" :finished="finished"
         :finished-text="t('noMore')" @load="loadNotes">
         <div v-for="note in notes" :key="note.id" class="note-card card"
-          @click="goEdit(note.id)">
-          <div class="note-title" v-html="highlight(note.title)"></div>
-          <div class="note-preview" v-html="highlight(note.content_preview || t('noContent'))"></div>
-          <div class="note-meta">
-            <div class="note-tags">
-              <van-tag v-for="tag in note.tags" :key="tag" size="mini" type="primary">{{ translateTag(tag) }}</van-tag>
+          :class="{ 'note-edit-mode': editMode, 'note-selected': selectedNotes.includes(note.id) }"
+          @click="editMode ? toggleNoteSelect(note.id) : goEdit(note.id)">
+          <van-checkbox v-if="editMode" :model-value="selectedNotes.includes(note.id)"
+            @click.stop="toggleNoteSelect(note.id)" class="note-checkbox" />
+          <div class="note-body">
+            <div class="note-title" v-html="highlight(note.title)"></div>
+            <div class="note-preview" v-html="highlight(note.content_preview || t('noContent'))"></div>
+            <div class="note-meta">
+              <div class="note-tags">
+                <van-tag v-for="tag in note.tags" :key="tag" size="mini" type="primary">{{ translateTag(tag) }}</van-tag>
+              </div>
+              <span class="note-date">{{ formatDate(note.updated_at) }}</span>
             </div>
-            <span class="note-date">{{ formatDate(note.updated_at) }}</span>
           </div>
         </div>
       </van-list>
@@ -69,7 +85,7 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { showToast } from 'vant'
+import { showToast, showConfirmDialog } from 'vant'
 import axios from 'axios'
 import API from '../config/api.js'
 import { useI18n, CUSTOM_CATS_KEY, loadCustomCategories } from '../composables/useI18n.js'
@@ -84,6 +100,8 @@ const activeCategory = ref('')
 const loading = ref(false)
 const finished = ref(false)
 const refreshing = ref(false)
+const editMode = ref(false)
+const selectedNotes = ref([])
 const page = ref(1)
 const showAddCategory = ref(false)
 const newCategoryZh = ref('')
@@ -189,6 +207,33 @@ async function onSearch() {
 
 function onRefresh() { refreshing.value = true; loadNotes() }
 function switchCategory(cat) { activeCategory.value = cat; onRefresh() }
+function toggleEditMode() {
+  editMode.value = !editMode.value
+  selectedNotes.value = []
+}
+function toggleNoteSelect(id) {
+  const idx = selectedNotes.value.indexOf(id)
+  if (idx > -1) selectedNotes.value.splice(idx, 1)
+  else selectedNotes.value.push(id)
+}
+function selectAllNotes() {
+  selectedNotes.value = notes.value.map(n => n.id)
+}
+async function deleteSelectedNotes() {
+  if (selectedNotes.value.length === 0) return
+  try {
+    await showConfirmDialog({ title: t('deleteSelected'), message: t('confirmDeleteSelected') })
+  } catch (e) { return /* 用户取消 */ }
+  try {
+    await axios.post(API.noteBatchDelete, { ids: selectedNotes.value })
+    selectedNotes.value = []
+    editMode.value = false
+    onRefresh()
+    showToast(t('deleted'))
+  } catch (e) {
+    showToast(t('requestFail'))
+  }
+}
 function goCreate() {
   const query = activeCategory.value ? { category: activeCategory.value } : {}
   router.push({ path: '/notes/new', query })
@@ -208,6 +253,7 @@ function highlight(text) {
 </script>
 
 <style scoped>
+.nav-action { font-size: 14px; color: var(--color-primary); cursor: pointer; }
 .search-bar { padding: 8px 12px 0; }
 .category-filter { display: flex; gap: 8px; padding: 8px 16px; flex-wrap: wrap; align-items: center; }
 .add-category-btn { cursor: pointer; opacity: 0.6; }
@@ -217,8 +263,17 @@ function highlight(text) {
   padding: 8px 12px; font-size: 15px; outline: none; box-sizing: border-box;
   background: var(--color-bg); color: var(--color-text-lighter); }
 .add-category-input::placeholder { color: var(--color-text-lighter); opacity: 0.6; }
-.note-card { cursor: pointer; transition: transform 0.1s; }
+.edit-bar { display: flex; gap: 8px; padding: 8px 16px; flex-wrap: wrap;
+  background: var(--color-card); border-bottom: 1px solid var(--color-border);
+  position: sticky; top: 92px; z-index: 10; }
+.note-card { cursor: pointer; transition: transform 0.1s; display: flex; align-items: flex-start; gap: 10px; }
 .note-card:active { transform: scale(0.98); }
+.note-card.note-edit-mode { cursor: default; }
+.note-card.note-edit-mode:active { transform: none; }
+.note-card.note-selected { background: rgba(212, 145, 74, 0.15);
+  box-shadow: inset 3px 0 0 0 var(--color-primary); }
+.note-checkbox { flex-shrink: 0; margin-top: 2px; }
+.note-body { flex: 1; min-width: 0; }
 .note-title { font-size: 16px; font-weight: 600; margin-bottom: 6px; }
 .note-title :deep(mark), .note-preview :deep(mark) { background: var(--color-primary); color: #fff; padding: 1px 3px; border-radius: 2px; }
 .note-preview { font-size: 13px; color: var(--color-text-light); margin-bottom: 10px;

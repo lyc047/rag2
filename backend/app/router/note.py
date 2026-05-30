@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.response import success_response
 from app.db.database import get_db
-from app.schemas.models import NoteCreate, NoteUpdate, PageRequest
+from app.schemas.models import NoteCreate, NoteUpdate, PageRequest, BatchDeleteRequest
 from app.services.note_service import note_service
 
 router = APIRouter()
@@ -38,6 +38,14 @@ async def delete_note(note_id: str, db: AsyncSession = Depends(get_db)):
     """删除笔记"""
     ok = await note_service.delete(db, note_id)
     return success_response(message="已删除" if ok else "笔记不存在")
+
+
+@router.post("/batch-delete")
+async def batch_delete_notes(req: BatchDeleteRequest, db: AsyncSession = Depends(get_db)):
+    """批量删除笔记"""
+    count = await note_service.delete_batch(db, req.ids)
+    await db.commit()
+    return success_response(message=f"已删除 {count} 篇笔记", data={"deleted": count})
 
 
 @router.get("/{note_id}")

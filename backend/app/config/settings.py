@@ -24,6 +24,7 @@ CHROMA_COLLECTION = os.getenv("CHROMA_COLLECTION", "rag2_collection")
 CHROMA_CHUNK_SIZE = int(os.getenv("CHROMA_CHUNK_SIZE", "500"))
 CHROMA_CHUNK_OVERLAP = int(os.getenv("CHROMA_CHUNK_OVERLAP", "50"))
 CHROMA_DISTANCE_METRIC = os.getenv("CHROMA_DISTANCE_METRIC", "cosine")  # l2 / cosine / ip
+CHUNK_STRATEGY = os.getenv("CHUNK_STRATEGY", "recursive")  # recursive / semantic (Markdown标题感知)
 
 # ==================== 知识库配置 ====================
 DATA_PATH = os.getenv("DATA_PATH", "data/knowledge")
@@ -38,6 +39,13 @@ VECTOR_WEIGHT = float(os.getenv("VECTOR_WEIGHT", "0.7"))  # 向量检索在RRF�
 SIMILARITY_THRESHOLD = os.getenv("SIMILARITY_THRESHOLD")  # 相似度阈值（L2/余弦距离上限），None=不过滤
 if SIMILARITY_THRESHOLD is not None:
     SIMILARITY_THRESHOLD = float(SIMILARITY_THRESHOLD)
+
+# ==================== 重排序配置 ====================
+RERANK_ENABLED = os.getenv("RERANK_ENABLED", "false").lower() == "true"  # LLM重排序开关
+RERANK_TOP_N = int(os.getenv("RERANK_TOP_N", "10"))  # RRF融合后送入LLM精排的候选数
+
+# ==================== 时间上下文 ====================
+CONTENT_TIME_EXTRACTION = os.getenv("CONTENT_TIME_EXTRACTION", "true").lower() == "true"  # 文档内容时间提取
 
 # ==================== 服务配置 ====================
 SERVER_PORT = int(os.getenv("SERVER_PORT", "8000"))

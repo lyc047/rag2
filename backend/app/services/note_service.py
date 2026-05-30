@@ -71,6 +71,22 @@ class NoteService:
             logger.error(f"笔记向量删除失败: {e}")
         return True
 
+    async def delete_batch(self, db: AsyncSession, ids: list[str]) -> int:
+        """批量删除笔记，返回删除数"""
+        from sqlalchemy import delete
+        # 先删除向量
+        for note_id in ids:
+            try:
+                await vector_store_service.delete_note_vector(note_id)
+            except Exception:
+                pass
+        # 删除数据库记录
+        result = await db.execute(delete(Note).where(Note.id.in_(ids)))
+        await db.flush()
+        count = result.rowcount
+        logger.info(f"批量删除笔记 {count}/{len(ids)} 个")
+        return count
+
     async def get(self, db: AsyncSession, note_id: str) -> Optional[NoteResponse]:
         """获取单篇笔记详情"""
         note = await db.get(Note, note_id)

@@ -8,6 +8,7 @@ export default {
   noteCreate: `${BASE}/note`,
   noteUpdate: (id) => `${BASE}/note/${id}`,
   noteDelete: (id) => `${BASE}/note/${id}`,
+  noteBatchDelete: `${BASE}/note/batch-delete`,
   noteSearch: (q) => `${BASE}/note/search/${encodeURIComponent(q)}`,
 
   // AI助手
@@ -15,6 +16,8 @@ export default {
   chatSessions: `${BASE}/chat/sessions`,
   chatSession: (id) => `${BASE}/chat/sessions/${id}`,
   chatDeleteSession: (id) => `${BASE}/chat/sessions/${id}`,
+  chatDeleteAllSessions: `${BASE}/chat/sessions`,
+  chatBatchDeleteSessions: `${BASE}/chat/sessions/batch-delete`,
 
   // 知识库
   knowledgeUpload: `${BASE}/knowledge/upload`,

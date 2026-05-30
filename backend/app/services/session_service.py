@@ -70,6 +70,24 @@ class SessionService:
         await db.flush()
         return True
 
+    async def delete_all_sessions(self, db: AsyncSession) -> int:
+        """删除全部会话，返回删除数"""
+        from sqlalchemy import delete
+        result = await db.execute(delete(ChatSession))
+        await db.flush()
+        count = result.rowcount
+        logger.info(f"已删除全部 {count} 个会话")
+        return count
+
+    async def delete_batch(self, db: AsyncSession, ids: list[str]) -> int:
+        """批量删除会话，返回删除数"""
+        from sqlalchemy import delete
+        result = await db.execute(delete(ChatSession).where(ChatSession.id.in_(ids)))
+        await db.flush()
+        count = result.rowcount
+        logger.info(f"批量删除 {count}/{len(ids)} 个会话")
+        return count
+
 
 # 全局单例
 session_service = SessionService()

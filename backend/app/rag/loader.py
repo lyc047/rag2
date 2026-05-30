@@ -1,7 +1,9 @@
 """文件加载器 —— 支持PDF/TXT/DOCX/MD/PPTX格式，异步+同步双版本"""
 import os
+import re
 import hashlib
 import asyncio
+from datetime import datetime
 import aiofiles
 from langchain_core.documents import Document
 from langchain_community.document_loaders import (
@@ -164,3 +166,28 @@ def load_file_sync(file_path: str) -> list[Document]:
     if loader:
         return loader(file_path)
     return []
+
+
+# ==================== 时间元数据提取 ====================
+def get_file_mtime_sync(file_path: str) -> str:
+    """获取文件的最后修改时间（ISO格式），用于文档时间标签"""
+    try:
+        mtime = os.path.getmtime(file_path)
+        return datetime.fromtimestamp(mtime).strftime("%Y-%m-%d")
+    except Exception:
+        return ""
+
+
+def extract_content_time_range(text: str) -> str:
+    """从文档内容中提取年份范围（如 '2005-2025'）。
+
+    匹配中文年份格式：2005年、2023年度、2018-2020年
+    返回格式："2005-2025" 或 "2005" 或 ""（无法提取时）
+    """
+    years = re.findall(r'(19\d{2}|20\d{2})\s*年', text)
+    if not years:
+        return ""
+    years_int = sorted(set(int(y) for y in years))
+    if len(years_int) == 1:
+        return str(years_int[0])
+    return f"{years_int[0]}-{years_int[-1]}"

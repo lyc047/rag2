@@ -5,7 +5,7 @@ from typing import List
 import numpy as np
 from langchain_core.documents import Document
 from rank_bm25 import BM25Okapi
-from app.config.settings import TOP_K, RETRIEVAL_K, BM25_WEIGHT, VECTOR_WEIGHT, SIMILARITY_THRESHOLD
+from app.config.settings import TOP_K, RETRIEVAL_K, BM25_WEIGHT, VECTOR_WEIGHT, SIMILARITY_THRESHOLD, RERANK_ENABLED, RERANK_TOP_N
 from app.rag.vector_store import vector_store_service
 from app.core.logger import logger
 
@@ -69,7 +69,68 @@ class HybridRetriever:
         else:
             self._bm25 = None
 
-    async def retrieve(self, query: str) -> List[Document]:
+    async def _rerank_with_llm(self, query: str, candidates: list[Document]) -> list[Document]:
+        """LLM重排序 —— 对RRF融合后的候选文档进行语义精排（仅非流式路径）"""
+        if len(candidates) <= 1:
+            return candidates
+
+        from app.utils.factory import get_chat_model
+        model = get_chat_model()
+
+        # 构造评分prompt
+        candidate_texts = []
+        for i, doc in enumerate(candidates, start=1):
+            preview = doc.page_content[:300].replace("\n", " ")
+            candidate_texts.append(f"[{i}]\n{preview}")
+
+        rerank_prompt = f"""请评估以下文档片段与用户问题的相关性，为每个片段打分（1-5分，5=高度相关）。
+
+用户问题：{query}
+
+候选片段：
+{chr(10).join(candidate_texts)}
+
+请严格按以下格式输出（每行一个，不要其他内容）：
+片段编号:分数:简短理由（15字以内）
+
+示例：
+1:5:直接回答了问题核心
+2:1:与问题完全无关
+3:3:部分相关但不够直接"""
+
+        try:
+            result = await model.ainvoke(rerank_prompt)
+            content = result.content if hasattr(result, "content") else str(result)
+
+            # 解析评分
+            scores: dict[int, float] = {}
+            for line in content.strip().split("\n"):
+                line = line.strip()
+                if ":" in line:
+                    parts = line.split(":", 2)
+                    try:
+                        idx = int(parts[0].strip())
+                        score = float(parts[1].strip())
+                        scores[idx] = max(1.0, min(5.0, score))
+                    except (ValueError, IndexError):
+                        continue
+
+            # 按LLM评分重新排序（未评分的保持原顺序排在后面）
+            reranked = sorted(
+                candidates,
+                key=lambda d, i_=iter(range(len(candidates))): scores.get(next(i_) + 1, 3.0),
+                reverse=True,
+            )
+            logger.info(
+                f"LLM重排序: {len(candidates)}个候选 → 精排完成 "
+                f"(Top3分数: {[scores.get(i+1, '?') for i in range(min(3, len(candidates)))]})"
+            )
+            return reranked
+        except Exception as e:
+            logger.warning(f"LLM重排序失败，回退到RRF排序: {e}")
+            return candidates  # 重排序失败时回退
+
+    async def retrieve(self, query: str, rerank: bool = False) -> List[Document]:
         """执行混合检索 —— RRF加权融合"""
         await self._ensure_bm25_cache()
 
@@ -139,15 +200,31 @@ class HybridRetriever:
         # 5. 按RRF分数排序
         sorted_keys = sorted(rrf_scores, key=lambda k: rrf_scores[k], reverse=True)
 
-        # 6. 构建最终结果
-        merged: list[Document] = []
-        for key in sorted_keys[:self.k]:
+        # 6. 构建候选结果（先取RERANK_TOP_N个用于可能的精排）
+        candidate_limit = max(RERANK_TOP_N, self.k) if (rerank or RERANK_ENABLED) else self.k
+        candidates: list[Document] = []
+        for key in sorted_keys[:candidate_limit]:
             doc, _ = vector_ranks.get(key) or bm25_ranks.get(key) or (None, None)
             if doc:
-                merged.append(doc)
+                candidates.append(doc)
+
+        # 7. LLM重排序（如果启用且非流式路径）
+        if rerank or RERANK_ENABLED:
+            candidates = await self._rerank_with_llm(query, candidates)
+
+        # 8. 截断到TOP_K
+        merged = candidates[:self.k]
 
         logger.info(
             f"RRF融合检索: 向量{len(vector_ranks)}个 + BM25{len(bm25_ranks)}个 "
             f"→ 融合{len(merged)}个 (query={query[:40]}...)"
         )
+        # 记录Top-3的分数和来源，用于检索质量监控
+        for i, key in enumerate(sorted_keys[:3]):
+            if i < len(merged):
+                score = rrf_scores[key]
+                doc_preview = merged[i].page_content[:60].replace("\n", " ")
+                logger.debug(
+                    f"  Top{i+1}: RRF={score:.4f} | {doc_preview}..."
+                )
         return merged

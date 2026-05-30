@@ -73,6 +73,15 @@ class ChatRequest(BaseModel):
     lang: Optional[str] = None
 
 
+# ==================== 通用 ====================
+class BatchDeleteRequest(BaseModel):
+    """批量删除请求"""
+    ids: List[str] = Field(..., min_length=1, max_length=200)
+    def __init__(self, **data):
+        super().__init__(**data)
+        self.ids = list(dict.fromkeys(self.ids))  # 自动去重
+
+
 # ==================== 知识库 ====================
 class DocumentInfo(BaseModel):
     """文档基本信息"""
