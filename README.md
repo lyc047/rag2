@@ -82,38 +82,47 @@ rag2/
 
 - Python 3.12+
 - Node.js 18+
-- Ollama（本地 LLM 模式，可选）
+- Ollama（本地嵌入模型，可选但推荐）
 
-### 1. 后端
+### 方式一：一键启动（推荐）
+
+```bash
+# 第一次使用：安装所有依赖
+双击 setup.bat
+
+# 之后每次启动：
+双击 start.bat
+```
+
+`start.bat` 会自动启动后端 + 前端 + 打开浏览器。
+
+### 方式二：手动启动
+
+#### 1. 配置
 
 ```bash
 cd backend
-
-# 安装依赖
-uv sync
-
-# 配置环境变量（编辑 .env）
-# LLM_TYPE=OLLAMA         # 或 DEEPSEEK
-# OLLAMA_CHAT_MODEL=qwen3:latest
-# OLLAMA_EMBED_MODEL=qwen3-embedding:0.6b
-
-# 启动（默认端口 8005）
-.venv/Scripts/uvicorn main:app --host 0.0.0.0 --port 8005 --reload
+cp .env.example .env
+# 编辑 .env，填入 DEEPSEEK_API_KEY
 ```
 
-### 2. 前端
+#### 2. 后端
+
+```bash
+cd backend
+uv sync
+.venv\Scripts\uvicorn main:app --host 0.0.0.0 --port 8005
+```
+
+#### 3. 前端
 
 ```bash
 cd front
-
-# 安装依赖
 npm install
-
-# 启动开发服务器（默认端口 3001）
 npm run dev
 ```
 
-### 3. 访问
+### 访问
 
 - 前端：`http://localhost:3001`
 - 后端 API 文档：`http://localhost:8005/docs`
